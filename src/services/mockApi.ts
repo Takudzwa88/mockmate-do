@@ -1,5 +1,8 @@
 import { Todo, CreateTodoRequest, UpdateTodoRequest, TodoApiResponse } from '@/types/todo';
 
+// Local storage key
+const STORAGE_KEY = 'lovable-todos';
+
 // Mock data
 const mockTodos: Todo[] = [
   {
@@ -7,6 +10,7 @@ const mockTodos: Todo[] = [
     title: 'Complete React To-Do App',
     description: 'Build a comprehensive to-do application with TypeScript, proper state management, and mock API integration.',
     completed: false,
+    priority: 'high',
     createdAt: new Date('2024-01-15T10:00:00Z'),
     updatedAt: new Date('2024-01-15T10:00:00Z'),
   },
@@ -15,6 +19,7 @@ const mockTodos: Todo[] = [
     title: 'Review Component Architecture',
     description: 'Ensure all components are properly structured, reusable, and follow React best practices.',
     completed: true,
+    priority: 'medium',
     createdAt: new Date('2024-01-14T14:30:00Z'),
     updatedAt: new Date('2024-01-15T09:15:00Z'),
   },
@@ -23,6 +28,7 @@ const mockTodos: Todo[] = [
     title: 'Implement Error Handling',
     description: 'Add comprehensive error handling with user-friendly messages and proper loading states.',
     completed: false,
+    priority: 'low',
     createdAt: new Date('2024-01-13T16:45:00Z'),
     updatedAt: new Date('2024-01-13T16:45:00Z'),
   },
@@ -34,9 +40,35 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 // Simulate random API failures (10% chance)
 const shouldFail = () => Math.random() < 0.1;
 
+// Local storage utilities
+const loadTodos = (): Todo[] => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return parsed.map((todo: any) => ({
+        ...todo,
+        createdAt: new Date(todo.createdAt),
+        updatedAt: new Date(todo.updatedAt),
+      }));
+    }
+  } catch (error) {
+    console.error('Failed to load todos from localStorage:', error);
+  }
+  return [...mockTodos];
+};
+
+const saveTodos = (todos: Todo[]) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+  } catch (error) {
+    console.error('Failed to save todos to localStorage:', error);
+  }
+};
+
 class MockApiService {
-  private todos: Todo[] = [...mockTodos];
-  private nextId = 4;
+  private todos: Todo[] = loadTodos();
+  private nextId = Math.max(...this.todos.map(t => parseInt(t.id)), 0) + 1;
 
   async getTodos(): Promise<TodoApiResponse> {
     await delay(800); // Simulate network delay
@@ -66,6 +98,7 @@ class MockApiService {
       id: this.nextId.toString(),
       title: request.title.trim(),
       description: request.description.trim(),
+      priority: request.priority,
       completed: false,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -73,6 +106,7 @@ class MockApiService {
 
     this.todos.unshift(newTodo);
     this.nextId++;
+    saveTodos(this.todos);
 
     return {
       success: true,
@@ -106,6 +140,7 @@ class MockApiService {
     };
 
     this.todos[todoIndex] = updatedTodo;
+    saveTodos(this.todos);
 
     return {
       success: true,
@@ -127,6 +162,7 @@ class MockApiService {
     }
 
     this.todos.splice(todoIndex, 1);
+    saveTodos(this.todos);
 
     return {
       success: true,

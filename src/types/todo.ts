@@ -3,6 +3,7 @@ export interface Todo {
   title: string;
   description: string;
   completed: boolean;
+  priority: 'low' | 'medium' | 'high';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -10,6 +11,7 @@ export interface Todo {
 export interface CreateTodoRequest {
   title: string;
   description: string;
+  priority: 'low' | 'medium' | 'high';
 }
 
 export interface UpdateTodoRequest {
@@ -17,6 +19,7 @@ export interface UpdateTodoRequest {
   title?: string;
   description?: string;
   completed?: boolean;
+  priority?: 'low' | 'medium' | 'high';
 }
 
 export interface TodoApiResponse {

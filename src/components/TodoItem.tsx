@@ -85,6 +85,12 @@ export const TodoItem = ({
             
             <div className="flex items-center space-x-4 text-xs text-muted-foreground">
               <div className="flex items-center space-x-1">
+                <span className="text-base">
+                  {todo.priority === 'high' ? '🔴' : todo.priority === 'medium' ? '🟡' : '🟢'}
+                </span>
+                <span className="capitalize font-medium">{todo.priority}</span>
+              </div>
+              <div className="flex items-center space-x-1">
                 <Clock className="h-3 w-3" />
                 <span>Created {formatDate(todo.createdAt)}</span>
               </div>

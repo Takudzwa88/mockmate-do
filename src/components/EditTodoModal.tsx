@@ -3,6 +3,7 @@ import { Save, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Todo } from '@/types/todo';
 
@@ -11,18 +12,20 @@ interface EditTodoModalProps {
   isOpen: boolean;
   isLoading?: boolean;
   onClose: () => void;
-  onSave: (id: string, title: string, description: string) => Promise<void>;
+  onSave: (id: string, title: string, description: string, priority: 'low' | 'medium' | 'high') => Promise<void>;
 }
 
 export const EditTodoModal = ({ todo, isOpen, isLoading, onClose, onSave }: EditTodoModalProps) => {
   const [title, setTitle] = useState(todo?.title || '');
   const [description, setDescription] = useState(todo?.description || '');
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>(todo?.priority || 'medium');
 
   // Update local state when todo changes
   useEffect(() => {
     if (todo) {
       setTitle(todo.title);
       setDescription(todo.description);
+      setPriority(todo.priority);
     }
   }, [todo]);
 
@@ -31,7 +34,7 @@ export const EditTodoModal = ({ todo, isOpen, isLoading, onClose, onSave }: Edit
     if (!todo || !title.trim()) return;
 
     try {
-      await onSave(todo.id, title.trim(), description.trim());
+      await onSave(todo.id, title.trim(), description.trim(), priority);
       onClose();
     } catch (error) {
       // Error handling is done in parent component
@@ -42,6 +45,7 @@ export const EditTodoModal = ({ todo, isOpen, isLoading, onClose, onSave }: Edit
     if (todo) {
       setTitle(todo.title);
       setDescription(todo.description);
+      setPriority(todo.priority);
     }
     onClose();
   };
@@ -86,6 +90,19 @@ export const EditTodoModal = ({ todo, isOpen, isLoading, onClose, onSave }: Edit
               disabled={isLoading}
               className="min-h-[80px] resize-none"
             />
+          </div>
+          
+          <div>
+            <Select value={priority} onValueChange={(value: 'low' | 'medium' | 'high') => setPriority(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="high">🔴 High Priority</SelectItem>
+                <SelectItem value="medium">🟡 Medium Priority</SelectItem>
+                <SelectItem value="low">🟢 Low Priority</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           
           <div className="flex justify-end space-x-3 pt-4">

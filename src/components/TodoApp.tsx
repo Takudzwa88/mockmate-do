@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { CheckSquare, ListTodo } from 'lucide-react';
 import { Todo } from '@/types/todo';
 import { mockApiService, ApiError } from '@/services/mockApi';
@@ -7,6 +7,7 @@ import { TodoItem } from './TodoItem';
 import { EditTodoModal } from './EditTodoModal';
 import { LoadingSkeleton } from './LoadingSkeleton';
 import { ErrorMessage } from './ErrorMessage';
+import { SearchAndSort } from './SearchAndSort';
 import { useToast } from '@/hooks/use-toast';
 
 interface LoadingStates {
@@ -19,6 +20,8 @@ interface LoadingStates {
 
 export const TodoApp = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('newest');
   const [loading, setLoading] = useState<LoadingStates>({
     fetching: true,
     creating: false,
@@ -29,6 +32,47 @@ export const TodoApp = () => {
   const [error, setError] = useState<string | null>(null);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const { toast } = useToast();
+
+  // Filter and sort todos
+  const filteredAndSortedTodos = useMemo(() => {
+    let filtered = todos;
+
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const search = searchTerm.toLowerCase();
+      filtered = todos.filter(todo =>
+        todo.title.toLowerCase().includes(search) ||
+        todo.description.toLowerCase().includes(search)
+      );
+    }
+
+    // Apply sorting
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case 'alphabetical':
+          return a.title.localeCompare(b.title);
+        case 'alphabetical-desc':
+          return b.title.localeCompare(a.title);
+        case 'priority':
+          const priorityOrder = { high: 3, medium: 2, low: 1 };
+          return priorityOrder[b.priority] - priorityOrder[a.priority];
+        case 'priority-desc':
+          const priorityOrderDesc = { high: 1, medium: 2, low: 3 };
+          return priorityOrderDesc[a.priority] - priorityOrderDesc[b.priority];
+        case 'completed':
+          return (b.completed ? 1 : 0) - (a.completed ? 1 : 0);
+        case 'incomplete':
+          return (a.completed ? 1 : 0) - (b.completed ? 1 : 0);
+        case 'oldest':
+          return a.createdAt.getTime() - b.createdAt.getTime();
+        case 'newest':
+        default:
+          return b.createdAt.getTime() - a.createdAt.getTime();
+      }
+    });
+
+    return sorted;
+  }, [todos, searchTerm, sortBy]);
 
   // Fetch todos on component mount
   useEffect(() => {
@@ -54,11 +98,11 @@ export const TodoApp = () => {
     }
   };
 
-  const handleAddTodo = async (title: string, description: string) => {
+  const handleAddTodo = async (title: string, description: string, priority: 'low' | 'medium' | 'high') => {
     try {
       setError(null);
       setLoading(prev => ({ ...prev, creating: true }));
-      const response = await mockApiService.createTodo({ title, description });
+      const response = await mockApiService.createTodo({ title, description, priority });
       const newTodo = response.data as Todo;
       setTodos(prev => [newTodo, ...prev]);
       toast({
@@ -113,7 +157,7 @@ export const TodoApp = () => {
     setEditingTodo(todo);
   };
 
-  const handleSaveEdit = async (id: string, title: string, description: string) => {
+  const handleSaveEdit = async (id: string, title: string, description: string, priority: 'low' | 'medium' | 'high') => {
     try {
       setError(null);
       setLoading(prev => ({ ...prev, editingModal: true }));
@@ -121,6 +165,7 @@ export const TodoApp = () => {
         id,
         title,
         description,
+        priority,
       });
       const updatedTodo = response.data as Todo;
       setTodos(prev => prev.map(t => t.id === id ? updatedTodo : t));
@@ -208,6 +253,14 @@ export const TodoApp = () => {
           />
         </div>
 
+        {/* Search and Sort */}
+        <SearchAndSort
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+        />
+
         {/* Error Message */}
         {error && (
           <ErrorMessage
@@ -221,20 +274,23 @@ export const TodoApp = () => {
         <div className="space-y-4">
           {loading.fetching ? (
             <LoadingSkeleton count={3} />
-          ) : todos.length === 0 ? (
+          ) : filteredAndSortedTodos.length === 0 ? (
             <div className="text-center py-16">
               <div className="p-4 bg-muted/50 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
                 <ListTodo className="h-10 w-10 text-muted-foreground" />
               </div>
               <h3 className="text-xl font-semibold text-muted-foreground mb-2">
-                No todos yet
+                {searchTerm ? 'No todos found' : 'No todos yet'}
               </h3>
               <p className="text-muted-foreground max-w-md mx-auto">
-                Get started by adding your first todo above. Stay organized and productive!
+                {searchTerm 
+                  ? `No todos match "${searchTerm}". Try a different search term.`
+                  : 'Get started by adding your first todo above. Stay organized and productive!'
+                }
               </p>
             </div>
           ) : (
-            todos.map((todo) => (
+            filteredAndSortedTodos.map((todo) => (
               <TodoItem
                 key={todo.id}
                 todo={todo}

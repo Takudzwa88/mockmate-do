@@ -3,15 +3,17 @@ import { Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface AddTodoFormProps {
-  onAddTodo: (title: string, description: string) => Promise<void>;
+  onAddTodo: (title: string, description: string, priority: 'low' | 'medium' | 'high') => Promise<void>;
   isLoading?: boolean;
 }
 
 export const AddTodoForm = ({ onAddTodo, isLoading }: AddTodoFormProps) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -19,9 +21,10 @@ export const AddTodoForm = ({ onAddTodo, isLoading }: AddTodoFormProps) => {
     if (!title.trim()) return;
 
     try {
-      await onAddTodo(title.trim(), description.trim());
+      await onAddTodo(title.trim(), description.trim(), priority);
       setTitle('');
       setDescription('');
+      setPriority('medium');
       setIsExpanded(false);
     } catch (error) {
       // Error handling is done in parent component
@@ -35,6 +38,7 @@ export const AddTodoForm = ({ onAddTodo, isLoading }: AddTodoFormProps) => {
   const handleCancel = () => {
     setTitle('');
     setDescription('');
+    setPriority('medium');
     setIsExpanded(false);
   };
 
@@ -60,6 +64,17 @@ export const AddTodoForm = ({ onAddTodo, isLoading }: AddTodoFormProps) => {
               disabled={isLoading}
               className="min-h-[80px] resize-none border-border focus:ring-primary focus:border-primary"
             />
+            
+            <Select value={priority} onValueChange={(value: 'low' | 'medium' | 'high') => setPriority(value)}>
+              <SelectTrigger className="border-border focus:ring-primary focus:border-primary">
+                <SelectValue placeholder="Select priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="high">🔴 High Priority</SelectItem>
+                <SelectItem value="medium">🟡 Medium Priority</SelectItem>
+                <SelectItem value="low">🟢 Low Priority</SelectItem>
+              </SelectContent>
+            </Select>
             
             <div className="flex items-center justify-end space-x-3">
               <Button
